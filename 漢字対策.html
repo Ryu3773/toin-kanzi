@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TOIN KANJI BATTLE - 桐蔭漢字攻略 -</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+      min-height: 100vh;
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    .app-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+    }
+
+    /* Animated background grid */
+    .bg-grid {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(0, 200, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 200, 255, 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Glow orbs */
+    .glow-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .glow-orb-1 {
+      width: 300px;
+      height: 300px;
+      background: #00c8ff;
+      top: -100px;
+      right: -100px;
+      animation: float 8s ease-in-out infinite;
+    }
+
+    .glow-orb-2 {
+      width: 250px;
+      height: 250px;
+      background: #ffd700;
+      bottom: -80px;
+      left: -80px;
+      animation: float 10s ease-in-out infinite reverse;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(30px, 30px); }
+    }
+
+    /* Title styling */
+    .title-container {
+      text-align: center;
+      z-index: 1;
+    }
+
+    .main-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(1.8rem, 8vw, 3rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #00c8ff 0%, #00ff88 50%, #ffd700 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 0 30px rgba(0, 200, 255, 0.5);
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+
+    .sub-title {
+      font-size: clamp(1rem, 4vw, 1.5rem);
+      color: #ffd700;
+      font-weight: 700;
+      text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+      margin-bottom: 40px;
+    }
+
+    /* Button styling */
+    .cyber-button {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      padding: 18px 50px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #00c8ff 0%, #0088cc 100%);
+      color: #fff;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      box-shadow: 
+        0 0 20px rgba(0, 200, 255, 0.4),
+        inset 0 0 20px rgba(255, 255, 255, 0.1);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    .cyber-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s;
+    }
+
+    .cyber-button:hover::before {
+      left: 100%;
+    }
+
+    .cyber-button:active {
+      transform: scale(0.95);
+      box-shadow: 0 0 10px rgba(0, 200, 255, 0.6);
+    }
+
+    /* Quiz container */
+    .quiz-container {
+      width: 100%;
+      max-width: 500px;
+      z-index: 1;
+    }
+
+    /* Progress bar */
+    .progress-container {
+      margin-bottom: 20px;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      color: #888;
+    }
+
+    .timer-bar {
+      height: 8px;
+      background: #1a1a2e;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid #333;
+    }
+
+    .timer-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00c8ff, #00ff88);
+      border-radius: 4px;
+      transition: width 0.1s linear;
+    }
+
+    .timer-fill.danger {
+      background: linear-gradient(90deg, #ff4444, #ff8800);
+    }
+
+    /* Question card */
+    .question-card {
+      background: rgba(20, 20, 35, 0.9);
+      border: 1px solid rgba(0, 200, 255, 0.3);
+      border-radius: 16px;
+      padding: 30px 20px;
+      margin-bottom: 25px;
+      text-align: center;
+      box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.5),
+        inset 0 0 30px rgba(0, 200, 255, 0.05);
+    }
+
+    .question-number {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.9rem;
+      color: #00c8ff;
+      margin-bottom: 15px;
+      letter-spacing: 2px;
+    }
+
+    .question-text {
+      font-size: clamp(1.2rem, 5vw, 1.6rem);
+      line-height: 1.8;
+      font-weight: 700;
+    }
+
+    .highlight {
+      color: #ff4466;
+      font-weight: 900;
+      text-shadow: 0 0 10px rgba(255, 68, 102, 0.5);
+    }
+
+    /* Options grid */
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .option-button {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: clamp(1.1rem, 4vw, 1.4rem);
+      font-weight: 700;
+      padding: 20px 15px;
+      border: 2px solid rgba(0, 200, 255, 0.4);
+      border-radius: 12px;
+      background: rgba(0, 200, 255, 0.1);
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .option-button:active {
+      transform: scale(0.95);
+    }
+
+    .option-button:hover {
+      background: rgba(0, 200, 255, 0.2);
+      border-color: #00c8ff;
+      box-shadow: 0 0 20px rgba(0, 200, 255, 0.3);
+    }
+
+    .option-button.correct {
+      background: rgba(0, 255, 136, 0.3);
+      border-color: #00ff88;
+      box-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+      animation: correctPulse 0.5s ease;
+    }
+
+    .option-button.incorrect {
+      background: rgba(255, 68, 68, 0.3);
+      border-color: #ff4444;
+      animation: shake 0.5s ease;
+    }
+
+    .option-button.disabled {
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    .option-button.show-correct {
+      background: rgba(0, 255, 136, 0.2);
+      border-color: #00ff88;
+    }
+
+    @keyframes correctPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-10px); }
+      40% { transform: translateX(10px); }
+      60% { transform: translateX(-10px); }
+      80% { transform: translateX(10px); }
+    }
+
+    /* Explanation popup */
+    .explanation-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .explanation-card {
+      background: linear-gradient(135deg, #1a1a2e 0%, #2a2a4e 100%);
+      border: 2px solid;
+      border-radius: 16px;
+      padding: 30px 25px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      animation: popIn 0.3s ease;
+    }
+
+    .explanation-card.correct {
+      border-color: #00ff88;
+      box-shadow: 0 0 40px rgba(0, 255, 136, 0.3);
+    }
+
+    .explanation-card.incorrect {
+      border-color: #ff4444;
+      box-shadow: 0 0 40px rgba(255, 68, 68, 0.3);
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .result-icon {
+      font-size: 4rem;
+      margin-bottom: 15px;
+    }
+
+    .result-text {
+      font-size: 1.5rem;
+      font-weight: 900;
+      margin-bottom: 10px;
+    }
+
+    .correct-answer {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #ffd700;
+      margin-bottom: 15px;
+    }
+
+    .explanation-text {
+      font-size: 0.95rem;
+      color: #aaa;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .next-button {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      padding: 15px 40px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #ffd700 0%, #ff8800 100%);
+      color: #000;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .next-button:active {
+      transform: scale(0.95);
+    }
+
+    /* Result screen */
+    .result-container {
+      text-align: center;
+      z-index: 1;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    .final-score-label {
+      font-size: 1rem;
+      color: #888;
+      margin-bottom: 10px;
+      letter-spacing: 2px;
+    }
+
+    .final-score {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(4rem, 15vw, 6rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #00c8ff 0%, #00ff88 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 20px;
+    }
+
+    .rank-container {
+      margin-bottom: 40px;
+    }
+
+    .rank-label {
+      font-size: 1rem;
+      color: #888;
+      margin-bottom: 10px;
+    }
+
+    .rank {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 5rem;
+      font-weight: 900;
+      text-shadow: 0 0 30px currentColor;
+    }
+
+    .rank-s { color: #ffd700; }
+    .rank-a { color: #00ff88; }
+    .rank-b { color: #00c8ff; }
+    .rank-c { color: #ff8800; }
+
+    .rank-message {
+      font-size: 1.1rem;
+      color: #ccc;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+
+    .stats-container {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #00c8ff;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    /* Particle effects */
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 50;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #00ff88;
+      border-radius: 50%;
+      animation: particleFly 1s ease-out forwards;
+    }
+
+    @keyframes particleFly {
+      0% { transform: translate(0, 0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+
+    // Quiz data
+    const quizData = [
+      {
+        question: "著者の【イト】を汲み取る。",
+        answer: "意図",
+        options: ["意図", "糸", "異都", "緯度"],
+        explanation: "文脈から「何かをしようとする考え」を指すため「意図」が正解。"
+      },
+      {
+        question: "新しい学説を【テイショウ】する。",
+        answer: "提唱",
+        options: ["提唱", "低床", "定抄", "抵触"],
+        explanation: "意見や主張を人々に呼びかけることは「提唱」。"
+      },
+      {
+        question: "人類の【フヘン】的な願い。",
+        answer: "普遍",
+        options: ["普遍", "不変", "不偏", "譜編"],
+        explanation: "すべてのものに当てはまることは「普遍」。変わらないことは「不変」。"
+      },
+      {
+        question: "事件の【カイメイ】を急ぐ。",
+        answer: "解明",
+        options: ["解明", "改名", "開明", "晦冥"],
+        explanation: "不明な点をはっきりさせることは「解明」。"
+      },
+      {
+        question: "両者の【タイショウ】的な性格。",
+        answer: "対照",
+        options: ["対照", "対象", "対称", "大勝"],
+        explanation: "二つのものを比べて違いが目立つことは「対照」。"
+      },
+      {
+        question: "社会の【キハン】に従う。",
+        answer: "規範",
+        options: ["規範", "既販", "帰帆", "機帆"],
+        explanation: "行動や判断の基準となる手本は「規範」。"
+      },
+      {
+        question: "会社の【シュウエキ】が改善する。",
+        answer: "収益",
+        options: ["収益", "集液", "秀益", "周益"],
+        explanation: "利益を得ることは「収益」。"
+      },
+      {
+        question: "文化の【コウショウ】が高い。",
+        answer: "高尚",
+        options: ["高尚", "考証", "交渉", "公称"],
+        explanation: "学問や技芸などの程度が高く上品なことは「高尚」。"
+      },
+      {
+        question: "自説を【コジ】する。",
+        answer: "固持",
+        options: ["固持", "孤児", "誇示", "故知"],
+        explanation: "自分の考えを頑固に持ち続けることは「固持」。自慢げに見せるのは「誇示」。"
+      },
+      {
+        question: "【カンシン】を買うための行動。",
+        answer: "歓心",
+        options: ["歓心", "関心", "感心", "寒心"],
+        explanation: "相手に気に入られようとする気持ちは「歓心」。興味を持つのは「関心」。"
+      }
+    ];
+
+    // Shuffle function
+    const shuffleArray = (array) => {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    };
+
+    // Format question with highlight
+    const formatQuestion = (text) => {
+      const regex = /【(.+?)】/;
+      const match = text.match(regex);
+      if (match) {
+        const parts = text.split(regex);
+        return (
+          <>
+            {parts[0]}<span className="highlight">【{parts[1]}】</span>{parts[2]}
+          </>
+        );
+      }
+      return text;
+    };
+
+    // Start Screen Component
+    const StartScreen = ({ onStart }) => (
+      <div className="title-container">
+        <h1 className="main-title">TOIN KANJI BATTLE</h1>
+        <p className="sub-title">- 桐蔭漢字攻略 -</p>
+        <button className="cyber-button" onClick={onStart}>
+          START
+        </button>
+      </div>
+    );
+
+    // Quiz Screen Component
+    const QuizScreen = ({ questions, onComplete }) => {
+      const [currentIndex, setCurrentIndex] = useState(0);
+      const [score, setScore] = useState(0);
+      const [timeLeft, setTimeLeft] = useState(10);
+      const [selectedAnswer, setSelectedAnswer] = useState(null);
+      const [showExplanation, setShowExplanation] = useState(false);
+      const [isCorrect, setIsCorrect] = useState(false);
+      const [shuffledOptions, setShuffledOptions] = useState([]);
+      const [particles, setParticles] = useState([]);
+
+      const currentQuestion = questions[currentIndex];
+
+      useEffect(() => {
+        setShuffledOptions(shuffleArray(currentQuestion.options));
+      }, [currentIndex]);
+
+      useEffect(() => {
+        if (showExplanation || selectedAnswer !== null) return;
+
+        const timer = setInterval(() => {
+          setTimeLeft((prev) => {
+            if (prev <= 0.1) {
+              handleAnswer(null);
+              return 0;
+            }
+            return prev - 0.1;
+          });
+        }, 100);
+
+        return () => clearInterval(timer);
+      }, [currentIndex, showExplanation, selectedAnswer]);
+
+      const createParticles = (correct) => {
+        const newParticles = [];
+        for (let i = 0; i < 20; i++) {
+          newParticles.push({
+            id: Date.now() + i,
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            tx: (Math.random() - 0.5) * 200,
+            ty: (Math.random() - 0.5) * 200,
+            color: correct ? '#00ff88' : '#ff4444'
+          });
+        }
+        setParticles(newParticles);
+        setTimeout(() => setParticles([]), 1000);
+      };
+
+      const handleAnswer = (answer) => {
+        if (selectedAnswer !== null) return;
+
+        const correct = answer === currentQuestion.answer;
+        setSelectedAnswer(answer);
+        setIsCorrect(correct);
+        createParticles(correct);
+
+        if (correct) {
+          setScore((prev) => prev + 1);
+        }
+
+        setTimeout(() => {
+          setShowExplanation(true);
+        }, 500);
+      };
+
+      const handleNext = () => {
+        if (currentIndex + 1 >= questions.length) {
+          onComplete(score + (isCorrect ? 0 : 0)); // Score already updated
+        } else {
+          setCurrentIndex((prev) => prev + 1);
+          setSelectedAnswer(null);
+          setShowExplanation(false);
+          setTimeLeft(10);
+        }
+      };
+
+      const timerPercentage = (timeLeft / 10) * 100;
+
+      return (
+        <>
+          <div className="quiz-container">
+            <div className="progress-container">
+              <div className="progress-info">
+                <span>QUESTION {currentIndex + 1}/{questions.length}</span>
+                <span>{Math.ceil(timeLeft)}s</span>
+              </div>
+              <div className="timer-bar">
+                <div 
+                  className={`timer-fill ${timeLeft <= 3 ? 'danger' : ''}`}
+                  style={{ width: `${timerPercentage}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="question-card">
+              <div className="question-number">Q.{currentIndex + 1}</div>
+              <p className="question-text">
+                {formatQuestion(currentQuestion.question)}
+              </p>
+            </div>
+
+            <div className="options-grid">
+              {shuffledOptions.map((option, index) => {
+                let className = 'option-button';
+                if (selectedAnswer !== null) {
+                  className += ' disabled';
+                  if (option === currentQuestion.answer) {
+                    className += ' show-correct';
+                  }
+                  if (option === selectedAnswer) {
+                    className += selectedAnswer === currentQuestion.answer ? ' correct' : ' incorrect';
+                  }
+                }
+                return (
+                  <button
+                    key={index}
+                    className={className}
+                    onClick={() => handleAnswer(option)}
+                    disabled={selectedAnswer !== null}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {showExplanation && (
+            <div className="explanation-overlay" onClick={handleNext}>
+              <div className={`explanation-card ${isCorrect ? 'correct' : 'incorrect'}`} onClick={(e) => e.stopPropagation()}>
+                <div className="result-icon">{isCorrect ? '⭕' : '❌'}</div>
+                <div className="result-text" style={{ color: isCorrect ? '#00ff88' : '#ff4444' }}>
+                  {isCorrect ? 'CORRECT!' : 'INCORRECT...'}
+                </div>
+                <div className="correct-answer">{currentQuestion.answer}</div>
+                <p className="explanation-text">{currentQuestion.explanation}</p>
+                <button className="next-button" onClick={handleNext}>
+                  {currentIndex + 1 >= questions.length ? 'RESULT' : 'NEXT'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="particles">
+            {particles.map((p) => (
+              <div
+                key={p.id}
+                className="particle"
+                style={{
+                  left: p.x,
+                  top: p.y,
+                  background: p.color,
+                  '--tx': `${p.tx}px`,
+                  '--ty': `${p.ty}px`
+                }}
+              />
+            ))}
+          </div>
+        </>
+      );
+    };
+
+    // Result Screen Component
+    const ResultScreen = ({ score, total, onRestart }) => {
+      const percentage = Math.round((score / total) * 100);
+      
+      let rank, rankClass, message;
+      if (percentage >= 90) {
+        rank = 'S';
+        rankClass = 'rank-s';
+        message = '素晴らしい！完璧に近い成績です。この調子で本番も頑張れ！';
+      } else if (percentage >= 70) {
+        rank = 'A';
+        rankClass = 'rank-a';
+        message = '良い調子です！間違えた問題を復習すれば、さらに上を目指せます。';
+      } else if (percentage >= 50) {
+        rank = 'B';
+        rankClass = 'rank-b';
+        message = 'まずまずの結果。同音異義語の区別をもう一度確認しよう。';
+      } else {
+        rank = 'C';
+        rankClass = 'rank-c';
+        message = '基礎からしっかり復習しよう。繰り返し練習が大切！';
+      }
+
+      return (
+        <div className="result-container">
+          <p className="final-score-label">YOUR SCORE</p>
+          <div className="final-score">{percentage}</div>
+          
+          <div className="rank-container">
+            <p className="rank-label">RANK</p>
+            <div className={`rank ${rankClass}`}>{rank}</div>
+          </div>
+
+          <div className="stats-container">
+            <div className="stat-item">
+              <div className="stat-value">{score}</div>
+              <div className="stat-label">正解</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-value">{total - score}</div>
+              <div className="stat-label">不正解</div>
+            </div>
+          </div>
+
+          <p className="rank-message">{message}</p>
+
+          <button className="cyber-button" onClick={onRestart}>
+            RETRY
+          </button>
+        </div>
+      );
+    };
+
+    // Main App Component
+    const App = () => {
+      const [gameState, setGameState] = useState('start');
+      const [score, setScore] = useState(0);
+      const [questions, setQuestions] = useState([]);
+
+      const startGame = () => {
+        setQuestions(shuffleArray(quizData));
+        setScore(0);
+        setGameState('quiz');
+      };
+
+      const completeGame = (finalScore) => {
+        setScore(finalScore);
+        setGameState('result');
+      };
+
+      return (
+        <>
+          <div className="bg-grid" />
+          <div className="glow-orb glow-orb-1" />
+          <div className="glow-orb glow-orb-2" />
+          
+          <div className="app-container">
+            {gameState === 'start' && <StartScreen onStart={startGame} />}
+            {gameState === 'quiz' && (
+              <QuizScreen 
+                questions={questions} 
+                onComplete={completeGame}
+              />
+            )}
+            {gameState === 'result' && (
+              <ResultScreen 
+                score={score} 
+                total={quizData.length} 
+                onRestart={startGame}
+              />
+            )}
+          </div>
+        </>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
